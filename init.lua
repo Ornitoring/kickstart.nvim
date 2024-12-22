@@ -91,7 +91,10 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
+
+-- Language
+vim.cmd 'language en_US'
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -102,7 +105,7 @@ vim.g.have_nerd_font = false
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -155,7 +158,7 @@ vim.opt.inccommand = 'split'
 vim.opt.cursorline = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
-vim.opt.scrolloff = 10
+vim.opt.scrolloff = 999
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -166,6 +169,8 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+
+vim.keymap.set('n', '<leader>y', ':Telescope neoclip<CR>', { noremap = true, silent = true, desc = 'Open clipboard history' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -201,6 +206,13 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
     vim.highlight.on_yank()
+    vim.fn.setreg('"', vim.fn.getreg '+') -- Yank system clipboard into unnamed register
+  end,
+})
+
+vim.api.nvim_create_autocmd('FocusGained', {
+  callback = function()
+    vim.fn.setreg('"', vim.fn.getreg '+') -- Sync clipboard to unnamed register
   end,
 })
 
@@ -230,6 +242,35 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  {
+    'github/copilot.vim',
+    config = function() end,
+  },
+
+  {
+    "sindrets/diffview.nvim",
+    dependencies = "nvim-lua/plenary.nvim", -- Required dependency
+    config = function()
+      require("diffview").setup({
+        -- Custom configuration options
+        enhanced_diff_hl = true, -- Enable enhanced diff highlighting
+        use_icons = true,        -- Use icons in UI (requires a patched font)
+        view = {
+          default = {
+            layout = "diff3_horizontal", -- Set the default layout style
+          },
+        },
+        hooks = {
+          -- Add custom hooks if necessary
+          diff_buf_read = function()
+            vim.opt_local.wrap = false
+            vim.opt_local.list = false
+          end,
+        },
+      })
+    end,
+    cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewToggleFiles", "DiffviewFocusFiles" }, -- Lazy load on these commands
+  },
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -256,6 +297,35 @@ require('lazy').setup({
     },
   },
 
+  {
+    'kdheepak/lazygit.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      vim.keymap.set('n', '<leader>lg', ':LazyGit<CR>', { desc = 'Open LazyGit' })
+    end,
+  },
+
+  {
+    -- Clipboard manager that integrates with telescope.nvim
+    'AckslD/nvim-neoclip.lua',
+    dependencies = {
+      { 'kkharji/sqlite.lua', module = 'sqlite' },
+      { 'nvim-telescope/telescope.nvim' }, -- Ensure telescope.nvim is installed
+    },
+    config = function()
+      require('neoclip').setup {
+        -- Add any custom setup options here if needed
+        history = 1000,
+        enable_persistent_history = true,
+        db_path = vim.fn.stdpath 'data' .. '/databases/neoclip.sqlite3',
+        preview = true,
+        default_register = { '"', '+', '*' },
+        default_register_macros = 'q',
+        enable_macro_history = true,
+      }
+    end,
+  },
+
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
   --
   -- This is often very useful to both group configuration, as well as handle
@@ -279,7 +349,7 @@ require('lazy').setup({
         -- set icon mappings to true if you have a Nerd Font
         mappings = vim.g.have_nerd_font,
         -- If you are using a Nerd Font: set icons.keys to an empty table which will use the
-        -- default whick-key.nvim defined Nerd Font icons, otherwise define a string table
+        -- default which-key.nvim defined Nerd Font icons, otherwise define a string table
         keys = vim.g.have_nerd_font and {} or {
           Up = '<Up> ',
           Down = '<Down> ',
@@ -401,12 +471,39 @@ require('lazy').setup({
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
+      -- Function to include hidden files but ignore .git folders in find_files
+      local function find_files_with_hidden()
+        builtin.find_files {
+          hidden = true, -- Include hidden files
+          no_ignore = false, -- Don't ignore files specified in .gitignore
+          file_ignore_patterns = { '%.git/' }, -- Ignore .git directories
+        }
+      end
+
+      -- Function to include hidden files but ignore .git folders in live_grep
+      local function live_grep_with_hidden()
+        builtin.live_grep {
+          additional_args = function()
+            return { '--hidden', '--no-ignore', '--glob', '!.git/**' } -- Exclude .git directories
+          end,
+        }
+      end
+
+      -- Function to include hidden files but ignore .git folders in grep_string
+      local function grep_string_with_hidden()
+        builtin.grep_string {
+          additional_args = function()
+            return { '--hidden', '--no-ignore', '--glob', '!.git/**' } -- Exclude .git directories
+          end,
+        }
+      end
+
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+      vim.keymap.set('n', '<leader>sf', find_files_with_hidden, { desc = '[S]earch [F]iles' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-      vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
-      vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
+      vim.keymap.set('n', '<leader>sw', grep_string_with_hidden, { desc = '[S]earch current [W]ord' })
+      vim.keymap.set('n', '<leader>sg', live_grep_with_hidden, { desc = '[S]earch by [G]rep' })
       vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
@@ -426,6 +523,7 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>s/', function()
         builtin.live_grep {
           grep_open_files = true,
+          hidden = true,
           prompt_title = 'Live Grep in Open Files',
         }
       end, { desc = '[S]earch [/] in Open Files' })
@@ -588,13 +686,25 @@ require('lazy').setup({
         end,
       })
 
+      vim.api.nvim_create_autocmd('BufWritePre', {
+        callback = function()
+          local mode = vim.api.nvim_get_mode().mode
+          local filetype = vim.bo.filetype
+          if vim.bo.modified == true and mode == 'n' and filetype ~= 'oil' then
+            vim.cmd 'lua vim.lsp.buf.format()'
+          else
+          end
+        end,
+      })
+
       -- Change diagnostic symbols in the sign column (gutter)
       -- if vim.g.have_nerd_font then
-      --   local signs = { Error = '', Warn = '', Hint = '', Info = '' }
+      --   local signs = { ERROR = '', WARN = '', INFO = '', HINT = '' }
+      --   local diagnostic_signs = {}
       --   for type, icon in pairs(signs) do
-      --     local hl = 'DiagnosticSign' .. type
-      --     vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+      --     diagnostic_signs[vim.diagnostic.severity[type]] = icon
       --   end
+      --   vim.diagnostic.config { signs = { text = diagnostic_signs } }
       -- end
 
       -- LSP servers and clients are able to communicate to each other what features they support.
@@ -615,7 +725,9 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        -- gopls = {},
+        gopls = {},
+        terraformls = {},
+        ansiblels = {},
         -- pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
@@ -708,6 +820,8 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        go = { 'gofmt', 'goimports' },
+        terraform = { 'terraformls', 'terraform-fmt' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -788,9 +902,9 @@ require('lazy').setup({
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          --['<CR>'] = cmp.mapping.confirm { select = true },
-          --['<Tab>'] = cmp.mapping.select_next_item(),
-          --['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
