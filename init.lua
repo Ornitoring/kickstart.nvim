@@ -137,6 +137,11 @@ vim.opt.signcolumn = 'yes'
 -- Decrease update time
 vim.opt.updatetime = 250
 
+vim.o.tabstop = 4      -- Number of spaces that a <Tab> represents
+vim.o.shiftwidth = 4   -- Number of spaces for each step of (auto)indent
+vim.o.softtabstop = 4  -- Number of spaces a <Tab> counts for while editing
+vim.o.expandtab = true -- Use spaces instead of tabs by default
+
 -- Decrease mapped sequence wait time
 -- Displays which-key popup sooner
 vim.opt.timeoutlen = 300
@@ -157,8 +162,10 @@ vim.opt.inccommand = 'split'
 -- Show which line your cursor is on
 vim.opt.cursorline = true
 
+vim.g.netrw_liststyle = 3
+
 -- Minimal number of screen lines to keep above and below the cursor.
-vim.opt.scrolloff = 999
+-- vim.opt.scrolloff = 999
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -170,7 +177,10 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
-vim.keymap.set('n', '<leader>y', ':Telescope neoclip<CR>', { noremap = true, silent = true, desc = 'Open clipboard history' })
+vim.keymap.set('n', '<leader>y', ':Telescope neoclip<CR>',
+  { noremap = true, silent = true, desc = 'Open clipboard history' })
+
+vim.keymap.set('n', '<leader>e', ':Explore<CR>', { noremap = true, silent = true })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -197,6 +207,20 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
+vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI', 'BufEnter' }, {
+  group = grp,
+  callback = function()
+    local win_h = vim.api.nvim_win_get_height(0)
+    local off = math.min(vim.o.scrolloff, math.floor(win_h / 2))
+    local dist = vim.fn.line '$' - vim.fn.line '.'
+    local rem = vim.fn.line 'w$' - vim.fn.line 'w0' + 1
+    if dist < off and win_h - rem + dist < off then
+      local view = vim.fn.winsaveview()
+      view.topline = view.topline + off - (win_h - rem + dist)
+      vim.fn.winrestview(view)
+    end
+  end,
+})
 
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
@@ -248,16 +272,62 @@ require('lazy').setup({
   },
 
   {
-    "sindrets/diffview.nvim",
-    dependencies = "nvim-lua/plenary.nvim", -- Required dependency
+    'windwp/nvim-autopairs',
+    event = 'InsertEnter',
+    config = true,
+    -- use opts = {} for passing setup options
+    -- this is equivalent to setup({}) function
+  },
+
+  {
+    'shortcuts/no-neck-pain.nvim',
+    version = '*', -- Use the latest version
     config = function()
-      require("diffview").setup({
+      require('no-neck-pain').setup {
+        width = 80, -- Set the width for the main focus area
+        buffers = {
+          right = {
+            enabled = true,    -- Enable buffer padding on the right
+            background = true, -- Give the right buffer a background
+          },
+          left = {
+            enabled = true,    -- Enable buffer padding on the left
+            background = true, -- Give the left buffer a background
+          },
+        },
+        integrations = {
+          nvim_tree = { enabled = true }, -- Example integration with NvimTree
+        },
+        debug = false,                    -- Enable debug mode for troubleshooting
+      }
+    end,
+    keys = {
+      { '<leader>np', '<cmd>NoNeckPain<cr>', desc = 'Toggle No-Neck-Pain' }, -- Optional keybinding
+    },
+  },
+
+  {
+    'arnamak/stay-centered.nvim',
+    opts = function()
+      require('stay-centered').setup {
+        enabled = true,
+        -- Add any configurations here, like skip_filetypes if needed
+        -- skip_filetypes = {"lua", "typescript"},
+      }
+    end,
+  },
+
+  {
+    'sindrets/diffview.nvim',
+    dependencies = 'nvim-lua/plenary.nvim', -- Required dependency
+    config = function()
+      require('diffview').setup {
         -- Custom configuration options
         enhanced_diff_hl = true, -- Enable enhanced diff highlighting
         use_icons = true,        -- Use icons in UI (requires a patched font)
         view = {
           default = {
-            layout = "diff3_horizontal", -- Set the default layout style
+            layout = 'diff3_horizontal', -- Set the default layout style
           },
         },
         hooks = {
@@ -267,9 +337,9 @@ require('lazy').setup({
             vim.opt_local.list = false
           end,
         },
-      })
+      }
     end,
-    cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewToggleFiles", "DiffviewFocusFiles" }, -- Lazy load on these commands
+    cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewToggleFiles', 'DiffviewFocusFiles' }, -- Lazy load on these commands
   },
 
   -- NOTE: Plugins can also be added by using a table,
@@ -301,7 +371,7 @@ require('lazy').setup({
     'kdheepak/lazygit.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
     config = function()
-      vim.keymap.set('n', '<leader>lg', ':LazyGit<CR>', { desc = 'Open LazyGit' })
+      vim.keymap.set('n', '<leader>gg', ':LazyGit<CR>', { desc = 'Open LazyGit' })
     end,
   },
 
@@ -309,7 +379,7 @@ require('lazy').setup({
     -- Clipboard manager that integrates with telescope.nvim
     'AckslD/nvim-neoclip.lua',
     dependencies = {
-      { 'kkharji/sqlite.lua', module = 'sqlite' },
+      { 'kkharji/sqlite.lua',           module = 'sqlite' },
       { 'nvim-telescope/telescope.nvim' }, -- Ensure telescope.nvim is installed
     },
     config = function()
@@ -341,7 +411,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  { -- Useful plugin to show you pending keybinds.
+  {                     -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -384,7 +454,7 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
-        { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
+        { '<leader>c', group = '[C]ode',     mode = { 'n', 'x' } },
         { '<leader>d', group = '[D]ocument' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
@@ -424,7 +494,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -474,8 +544,8 @@ require('lazy').setup({
       -- Function to include hidden files but ignore .git folders in find_files
       local function find_files_with_hidden()
         builtin.find_files {
-          hidden = true, -- Include hidden files
-          no_ignore = false, -- Don't ignore files specified in .gitignore
+          hidden = true,                       -- Include hidden files
+          no_ignore = false,                   -- Don't ignore files specified in .gitignore
           file_ignore_patterns = { '%.git/' }, -- Ignore .git directories
         }
       end
@@ -548,7 +618,7 @@ require('lazy').setup({
       },
     },
   },
-  { 'Bilal2453/luvit-meta', lazy = true },
+  { 'Bilal2453/luvit-meta',     lazy = true },
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
@@ -560,7 +630,7 @@ require('lazy').setup({
 
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim', opts = {} },
+      { 'j-hui/fidget.nvim',       opts = {} },
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
@@ -697,6 +767,17 @@ require('lazy').setup({
         end,
       })
 
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = 'terraform',
+        callback = function()
+          vim.bo.tabstop = 2      -- Number of spaces that a <Tab> counts for
+          vim.bo.shiftwidth = 2   -- Number of spaces for autoindent
+          vim.bo.softtabstop = 2  -- Number of spaces for <Tab> in insert mode
+          vim.bo.expandtab = true -- Use spaces instead of tabs
+        end,
+        group = vim.api.nvim_create_augroup('TerraformFileType', { clear = true }),
+      })
+
       -- Change diagnostic symbols in the sign column (gutter)
       -- if vim.g.have_nerd_font then
       --   local signs = { ERROR = '', WARN = '', INFO = '', HINT = '' }
@@ -725,9 +806,21 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        gopls = {},
+        gopls = {
+          settings = {
+            gopls = {
+              gofumpt = true,
+              analyses = {
+                unusedparams = true,
+                shadow = true,
+              },
+              staticcheck = true,
+            },
+          },
+        },
         terraformls = {},
         ansiblels = {},
+        ts_ls = {},
         -- pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
@@ -822,6 +915,7 @@ require('lazy').setup({
         lua = { 'stylua' },
         go = { 'gofmt', 'goimports' },
         terraform = { 'terraformls', 'terraform-fmt' },
+        javascript = { 'prettierd', 'prettier' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -903,8 +997,9 @@ require('lazy').setup({
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
           ['<CR>'] = cmp.mapping.confirm { select = true },
-          ['<Tab>'] = cmp.mapping.select_next_item(),
-          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<Tab>'] = cmp.mapping.confirm { select = true },
+          -- ['<Tab>'] = cmp.mapping.select_next_item(),
+          -- ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
