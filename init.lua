@@ -113,6 +113,9 @@ vim.opt.mouse = 'a'
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
 
+vim.opt.encoding = 'utf-8'
+vim.opt.fileencoding = 'utf-8'
+
 -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
@@ -205,6 +208,17 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
+-- Add this to your kickstart.nvim configuration
+vim.keymap.set('n', '<leader>vt', function()
+  vim.cmd 'vsplit term://zsh' -- Replace 'bash' with your preferred shell if needed
+  vim.cmd 'startinsert'       -- Automatically enter insert mode in the terminal
+end, { desc = 'Vertical split terminal in cwd' })
+
+vim.keymap.set('n', '<leader>ht', function()
+  vim.cmd 'split term://zsh'
+  vim.cmd 'startinsert'
+end, { desc = 'Horizontal split terminal in cwd' })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI', 'BufEnter' }, {
@@ -269,6 +283,47 @@ require('lazy').setup({
   {
     'github/copilot.vim',
     config = function() end,
+  },
+
+  {
+    'nvim-neo-tree/neo-tree.nvim',
+    branch = 'v3.x',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-tree/nvim-web-devicons',
+      'MunifTanjim/nui.nvim',
+    },
+    config = function()
+      require('neo-tree').setup {
+        close_if_last_window = true,
+        window = {
+          position = 'left',
+          width = 35,
+        },
+        filesystem = {
+          follow_current_file = {
+            enabled = true,
+          },
+          hijack_netrw_behavior = 'open_current',
+          use_libuv_file_watcher = true,
+        },
+        buffers = {
+          follow_current_file = {
+            enabled = true,
+          },
+        },
+        event_handlers = {
+          {
+            event = 'file_opened',
+            handler = function(file_path)
+              require('neo-tree.command').execute { action = 'close' }
+            end,
+          },
+        },
+      }
+
+      vim.keymap.set('n', '<leader>e', ':Neotree toggle<CR>', { noremap = true, silent = true })
+    end,
   },
 
   {
