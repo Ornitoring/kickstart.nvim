@@ -140,9 +140,9 @@ vim.opt.signcolumn = 'yes'
 -- Decrease update time
 vim.opt.updatetime = 250
 
-vim.o.tabstop = 4      -- Number of spaces that a <Tab> represents
-vim.o.shiftwidth = 4   -- Number of spaces for each step of (auto)indent
-vim.o.softtabstop = 4  -- Number of spaces a <Tab> counts for while editing
+vim.o.tabstop = 4 -- Number of spaces that a <Tab> represents
+vim.o.shiftwidth = 4 -- Number of spaces for each step of (auto)indent
+vim.o.softtabstop = 4 -- Number of spaces a <Tab> counts for while editing
 vim.o.expandtab = true -- Use spaces instead of tabs by default
 
 -- Decrease mapped sequence wait time
@@ -180,8 +180,7 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
-vim.keymap.set('n', '<leader>y', ':Telescope neoclip<CR>',
-  { noremap = true, silent = true, desc = 'Open clipboard history' })
+vim.keymap.set('n', '<leader>y', ':Telescope neoclip<CR>', { noremap = true, silent = true, desc = 'Open clipboard history' })
 
 vim.keymap.set('n', '<leader>e', ':Explore<CR>', { noremap = true, silent = true })
 
@@ -211,7 +210,7 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- Add this to your kickstart.nvim configuration
 vim.keymap.set('n', '<leader>vt', function()
   vim.cmd 'vsplit term://zsh' -- Replace 'bash' with your preferred shell if needed
-  vim.cmd 'startinsert'       -- Automatically enter insert mode in the terminal
+  vim.cmd 'startinsert' -- Automatically enter insert mode in the terminal
 end, { desc = 'Vertical split terminal in cwd' })
 
 vim.keymap.set('n', '<leader>ht', function()
@@ -284,7 +283,21 @@ require('lazy').setup({
     'github/copilot.vim',
     config = function() end,
   },
+  {
+    'numToStr/FTerm.nvim',
+    config = function()
+      local fterm = require 'FTerm'
+      local gemini = fterm:new { cmd = 'gemini' }
 
+      vim.keymap.set('n', '<leader>tt', function()
+        fterm:toggle()
+      end, { desc = '[T]oggle [T]terminal' })
+
+      vim.keymap.set('n', '<leader>gg', function()
+        gemini:toggle()
+      end, { desc = 'Toggle [G]emini' })
+    end,
+  },
   {
     'nvim-neo-tree/neo-tree.nvim',
     branch = 'v3.x',
@@ -306,6 +319,13 @@ require('lazy').setup({
           },
           hijack_netrw_behavior = 'open_current',
           use_libuv_file_watcher = true,
+          filtered_items = {
+            visible = true, -- show all files, including hidden ones
+            show_hidden_count = true,
+            hide_dotfiles = false,
+            hide_gitignored = false,
+            never_show = { '.terraform', 'node_modules', '.venv', '.git' },
+          },
         },
         buffers = {
           follow_current_file = {
@@ -342,18 +362,18 @@ require('lazy').setup({
         width = 80, -- Set the width for the main focus area
         buffers = {
           right = {
-            enabled = true,    -- Enable buffer padding on the right
+            enabled = true, -- Enable buffer padding on the right
             background = true, -- Give the right buffer a background
           },
           left = {
-            enabled = true,    -- Enable buffer padding on the left
+            enabled = true, -- Enable buffer padding on the left
             background = true, -- Give the left buffer a background
           },
         },
         integrations = {
           nvim_tree = { enabled = true }, -- Example integration with NvimTree
         },
-        debug = false,                    -- Enable debug mode for troubleshooting
+        debug = false, -- Enable debug mode for troubleshooting
       }
     end,
     keys = {
@@ -379,7 +399,7 @@ require('lazy').setup({
       require('diffview').setup {
         -- Custom configuration options
         enhanced_diff_hl = true, -- Enable enhanced diff highlighting
-        use_icons = true,        -- Use icons in UI (requires a patched font)
+        use_icons = true, -- Use icons in UI (requires a patched font)
         view = {
           default = {
             layout = 'diff3_horizontal', -- Set the default layout style
@@ -426,7 +446,7 @@ require('lazy').setup({
     'kdheepak/lazygit.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
     config = function()
-      vim.keymap.set('n', '<leader>gg', ':LazyGit<CR>', { desc = 'Open LazyGit' })
+      vim.keymap.set('n', '<leader>lg', ':LazyGit<CR>', { desc = 'Open [L]azy[G]it' })
     end,
   },
 
@@ -434,7 +454,7 @@ require('lazy').setup({
     -- Clipboard manager that integrates with telescope.nvim
     'AckslD/nvim-neoclip.lua',
     dependencies = {
-      { 'kkharji/sqlite.lua',           module = 'sqlite' },
+      { 'kkharji/sqlite.lua', module = 'sqlite' },
       { 'nvim-telescope/telescope.nvim' }, -- Ensure telescope.nvim is installed
     },
     config = function()
@@ -466,7 +486,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  {                     -- Useful plugin to show you pending keybinds.
+  { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -509,7 +529,7 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
-        { '<leader>c', group = '[C]ode',     mode = { 'n', 'x' } },
+        { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
         { '<leader>d', group = '[D]ocument' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
@@ -549,7 +569,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -599,9 +619,9 @@ require('lazy').setup({
       -- Function to include hidden files but ignore .git folders in find_files
       local function find_files_with_hidden()
         builtin.find_files {
-          hidden = true,                       -- Include hidden files
-          no_ignore = false,                   -- Don't ignore files specified in .gitignore
-          file_ignore_patterns = { '%.git/' }, -- Ignore .git directories
+          hidden = true, -- Include hidden files
+          no_ignore = false, -- Don't ignore files specified in .gitignore
+          file_ignore_patterns = { '%.git/', 'node_modules', '%.venv' }, -- Ignore .git folders
         }
       end
 
@@ -609,7 +629,7 @@ require('lazy').setup({
       local function live_grep_with_hidden()
         builtin.live_grep {
           additional_args = function()
-            return { '--hidden', '--no-ignore', '--glob', '!.git/**' } -- Exclude .git directories
+            return { '--hidden', '--no-ignore', '--glob', '!.git/**', '--glob', '!.venv/**' } -- Exclude .git directories
           end,
         }
       end
@@ -673,7 +693,7 @@ require('lazy').setup({
       },
     },
   },
-  { 'Bilal2453/luvit-meta',     lazy = true },
+  { 'Bilal2453/luvit-meta', lazy = true },
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
@@ -685,7 +705,7 @@ require('lazy').setup({
 
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim',       opts = {} },
+      { 'j-hui/fidget.nvim', opts = {} },
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
@@ -825,9 +845,9 @@ require('lazy').setup({
       vim.api.nvim_create_autocmd('FileType', {
         pattern = 'terraform',
         callback = function()
-          vim.bo.tabstop = 2      -- Number of spaces that a <Tab> counts for
-          vim.bo.shiftwidth = 2   -- Number of spaces for autoindent
-          vim.bo.softtabstop = 2  -- Number of spaces for <Tab> in insert mode
+          vim.bo.tabstop = 2 -- Number of spaces that a <Tab> counts for
+          vim.bo.shiftwidth = 2 -- Number of spaces for autoindent
+          vim.bo.softtabstop = 2 -- Number of spaces for <Tab> in insert mode
           vim.bo.expandtab = true -- Use spaces instead of tabs
         end,
         group = vim.api.nvim_create_augroup('TerraformFileType', { clear = true }),
@@ -876,7 +896,20 @@ require('lazy').setup({
         terraformls = {},
         ansiblels = {},
         ts_ls = {},
-        -- pyright = {},
+        pyright = {
+          cmd = { '.venv/bin/pyright-langserver', '--stdio' },
+          settings = {
+            python = {
+              venvPath = vim.env.VIRTUAL_ENV and vim.env.VIRTUAL_ENV or vim.env.PYENV_ROOT,
+              analysis = {
+                autoSearchPaths = true,
+                useLibraryCodeForTypes = false,
+                typeCheckingMode = 'off',
+                diagnosticMode = 'off',
+              },
+            },
+          },
+        },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -954,6 +987,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
+        --
         local disable_filetypes = { c = true, cpp = true }
         local lsp_format_opt
         if disable_filetypes[vim.bo[bufnr].filetype] then
@@ -962,7 +996,7 @@ require('lazy').setup({
           lsp_format_opt = 'fallback'
         end
         return {
-          timeout_ms = 500,
+          timeout_ms = 5000,
           lsp_format = lsp_format_opt,
         }
       end,
@@ -972,7 +1006,7 @@ require('lazy').setup({
         terraform = { 'terraformls', 'terraform-fmt' },
         javascript = { 'prettierd', 'prettier' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'isort', 'black' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
