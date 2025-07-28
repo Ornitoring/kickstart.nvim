@@ -140,9 +140,9 @@ vim.opt.signcolumn = 'yes'
 -- Decrease update time
 vim.opt.updatetime = 250
 
-vim.o.tabstop = 4 -- Number of spaces that a <Tab> represents
-vim.o.shiftwidth = 4 -- Number of spaces for each step of (auto)indent
-vim.o.softtabstop = 4 -- Number of spaces a <Tab> counts for while editing
+vim.o.tabstop = 4      -- Number of spaces that a <Tab> represents
+vim.o.shiftwidth = 4   -- Number of spaces for each step of (auto)indent
+vim.o.softtabstop = 4  -- Number of spaces a <Tab> counts for while editing
 vim.o.expandtab = true -- Use spaces instead of tabs by default
 
 -- Decrease mapped sequence wait time
@@ -180,7 +180,8 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
-vim.keymap.set('n', '<leader>y', ':Telescope neoclip<CR>', { noremap = true, silent = true, desc = 'Open clipboard history' })
+vim.keymap.set('n', '<leader>y', ':Telescope neoclip<CR>',
+  { noremap = true, silent = true, desc = 'Open clipboard history' })
 
 vim.keymap.set('n', '<leader>e', ':Explore<CR>', { noremap = true, silent = true })
 
@@ -210,7 +211,7 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- Add this to your kickstart.nvim configuration
 vim.keymap.set('n', '<leader>vt', function()
   vim.cmd 'vsplit term://zsh' -- Replace 'bash' with your preferred shell if needed
-  vim.cmd 'startinsert' -- Automatically enter insert mode in the terminal
+  vim.cmd 'startinsert'       -- Automatically enter insert mode in the terminal
 end, { desc = 'Vertical split terminal in cwd' })
 
 vim.keymap.set('n', '<leader>ht', function()
@@ -362,18 +363,18 @@ require('lazy').setup({
         width = 80, -- Set the width for the main focus area
         buffers = {
           right = {
-            enabled = true, -- Enable buffer padding on the right
+            enabled = true,    -- Enable buffer padding on the right
             background = true, -- Give the right buffer a background
           },
           left = {
-            enabled = true, -- Enable buffer padding on the left
+            enabled = true,    -- Enable buffer padding on the left
             background = true, -- Give the left buffer a background
           },
         },
         integrations = {
           nvim_tree = { enabled = true }, -- Example integration with NvimTree
         },
-        debug = false, -- Enable debug mode for troubleshooting
+        debug = false,                    -- Enable debug mode for troubleshooting
       }
     end,
     keys = {
@@ -399,7 +400,7 @@ require('lazy').setup({
       require('diffview').setup {
         -- Custom configuration options
         enhanced_diff_hl = true, -- Enable enhanced diff highlighting
-        use_icons = true, -- Use icons in UI (requires a patched font)
+        use_icons = true,        -- Use icons in UI (requires a patched font)
         view = {
           default = {
             layout = 'diff3_horizontal', -- Set the default layout style
@@ -454,7 +455,7 @@ require('lazy').setup({
     -- Clipboard manager that integrates with telescope.nvim
     'AckslD/nvim-neoclip.lua',
     dependencies = {
-      { 'kkharji/sqlite.lua', module = 'sqlite' },
+      { 'kkharji/sqlite.lua',           module = 'sqlite' },
       { 'nvim-telescope/telescope.nvim' }, -- Ensure telescope.nvim is installed
     },
     config = function()
@@ -486,7 +487,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  { -- Useful plugin to show you pending keybinds.
+  {                     -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
@@ -529,7 +530,7 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
-        { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
+        { '<leader>c', group = '[C]ode',     mode = { 'n', 'x' } },
         { '<leader>d', group = '[D]ocument' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
@@ -569,7 +570,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -619,8 +620,8 @@ require('lazy').setup({
       -- Function to include hidden files but ignore .git folders in find_files
       local function find_files_with_hidden()
         builtin.find_files {
-          hidden = true, -- Include hidden files
-          no_ignore = false, -- Don't ignore files specified in .gitignore
+          hidden = true,                                                 -- Include hidden files
+          no_ignore = false,                                             -- Don't ignore files specified in .gitignore
           file_ignore_patterns = { '%.git/', 'node_modules', '%.venv' }, -- Ignore .git folders
         }
       end
@@ -629,7 +630,18 @@ require('lazy').setup({
       local function live_grep_with_hidden()
         builtin.live_grep {
           additional_args = function()
-            return { '--hidden', '--no-ignore', '--glob', '!.git/**', '--glob', '!.venv/**' } -- Exclude .git directories
+            return {
+              '--hidden',
+              '--no-ignore',
+              '--glob',
+              '!.git/**',
+              '--glob',
+              '!.venv/**',
+              '--glob',
+              '!**/node_modules/**',
+              '--glob',
+              '!**/vendor/**',
+            }
           end,
         }
       end
@@ -693,7 +705,7 @@ require('lazy').setup({
       },
     },
   },
-  { 'Bilal2453/luvit-meta', lazy = true },
+  { 'Bilal2453/luvit-meta',     lazy = true },
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
@@ -705,7 +717,7 @@ require('lazy').setup({
 
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-      { 'j-hui/fidget.nvim', opts = {} },
+      { 'j-hui/fidget.nvim',       opts = {} },
 
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
@@ -845,9 +857,9 @@ require('lazy').setup({
       vim.api.nvim_create_autocmd('FileType', {
         pattern = 'terraform',
         callback = function()
-          vim.bo.tabstop = 2 -- Number of spaces that a <Tab> counts for
-          vim.bo.shiftwidth = 2 -- Number of spaces for autoindent
-          vim.bo.softtabstop = 2 -- Number of spaces for <Tab> in insert mode
+          vim.bo.tabstop = 2      -- Number of spaces that a <Tab> counts for
+          vim.bo.shiftwidth = 2   -- Number of spaces for autoindent
+          vim.bo.softtabstop = 2  -- Number of spaces for <Tab> in insert mode
           vim.bo.expandtab = true -- Use spaces instead of tabs
         end,
         group = vim.api.nvim_create_augroup('TerraformFileType', { clear = true }),
@@ -862,6 +874,9 @@ require('lazy').setup({
       --   end
       --   vim.diagnostic.config { signs = { text = diagnostic_signs } }
       -- end
+      vim.diagnostic.config {
+        virtual_text = true,
+      }
 
       -- LSP servers and clients are able to communicate to each other what features they support.
       --  By default, Neovim doesn't support everything that is in the LSP specification.
