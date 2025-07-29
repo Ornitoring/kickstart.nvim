@@ -177,6 +177,24 @@ vim.g.netrw_liststyle = 3
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+-- Diagnostic keymaps
+vim.keymap.set('n', '<leader>z', function()
+  vim.diagnostic.open_float(nil, { focus = false })
+end, { desc = 'Show full diagnostics' })
+
+-- AWS instance and RDS search
+vim.keymap.set('n', '<leader>aws', function()
+  vim.cmd 'vsplit term://zsh -i -c aws_instance_fzf'
+  vim.cmd 'startinsert'
+  vim.cmd 'autocmd termclose * if &buftype == "terminal" | bd! | endif'
+end, { desc = 'Search AWS instances and open in browser' })
+
+vim.keymap.set('n', '<leader>rds', function()
+  vim.cmd 'vsplit term://zsh -i -c aws_rds_fzf'
+  vim.cmd 'startinsert'
+  vim.cmd 'autocmd termclose * if &buftype == "terminal" | bd! | endif'
+end, { desc = 'Search AWS RDS instances and open in browser' })
+
 -- Delete without overwriting clipboard
 vim.keymap.set({ 'n', 'v' }, 'd', function()
   return '"_d'
@@ -278,6 +296,21 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
   end
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
+
+-- Function to open the root project directory in VSCode
+local function open_project_in_vscode()
+  -- Try to get the Git root directory, fallback to the current working directory
+  local root_dir = vim.fn.systemlist('git rev-parse --show-toplevel')[1]
+  if vim.v.shell_error ~= 0 then
+    root_dir = vim.fn.getcwd()
+  end
+
+  -- Run VSCode command
+  vim.fn.jobstart({ 'code', root_dir }, { detach = true })
+end
+
+-- Map <leader>v to open project root in VSCode
+vim.keymap.set('n', '<leader>vs', open_project_in_vscode, { noremap = true, silent = true, desc = 'Open project in VSCode' })
 
 -- [[ Configure and install plugins ]]
 --
@@ -443,16 +476,25 @@ require('lazy').setup({
   --    require('gitsigns').setup({ ... })
   --
   -- See `:help gitsigns` to understand what the configuration keys do
-  { -- Adds git related signs to the gutter, as well as utilities for managing changes
+  {
+    -- Adds git related signs to the gutter, as well as utilities for managing changes
     'lewis6991/gitsigns.nvim',
     opts = {
       signs = {
         add = { text = '+' },
         change = { text = '~' },
         delete = { text = '_' },
-        topdelete = { text = '‾' },
+        topdelete = { text = '?' },
         changedelete = { text = '~' },
       },
+      current_line_blame = true, -- Enable inline git blame
+      current_line_blame_opts = {
+        delay = 500, -- Delay before blame info appears (in ms)
+        virt_text = true,
+        virt_text_pos = 'eol', -- Show blame text at end of line
+        ignore_whitespace = false,
+      },
+      current_line_blame_formatter = '<author>, <author_time:%Y-%m-%d> - <summary>',
     },
   },
 
@@ -646,8 +688,8 @@ require('lazy').setup({
       local function find_files_with_hidden()
         builtin.find_files {
           hidden = true, -- Include hidden files
-          no_ignore = false, -- Don't ignore files specified in .gitignore
-          file_ignore_patterns = { '%.git/', 'node_modules', '%.venv' }, -- Ignore .git folders
+          no_ignore = true, -- Don't ignore files specified in .gitignore
+          file_ignore_patterns = { '%.git/', '%node_modules/', '%.terraform/', '%.venv/', '%vendor/', '%build/' },
         }
       end
 
@@ -659,13 +701,17 @@ require('lazy').setup({
               '--hidden',
               '--no-ignore',
               '--glob',
-              '!.git/**',
+              '!**/.git/**',
               '--glob',
-              '!.venv/**',
+              '!**/.terraform/**',
+              '--glob',
+              '!**/.venv/**',
               '--glob',
               '!**/node_modules/**',
               '--glob',
               '!**/vendor/**',
+              '--glob',
+              '!**/build/**',
             }
           end,
         }
@@ -679,6 +725,16 @@ require('lazy').setup({
           end,
         }
       end
+
+      vim.keymap.set('n', '<leader>gb', function()
+        local blame = vim.fn.system('git blame -L ' .. vim.fn.line '.' .. ',+1 --porcelain ' .. vim.fn.expand '%')
+        local commit = blame:match '^([0-9a-f]+)'
+        if commit and commit ~= '00000000' then
+          vim.cmd('vertical new | terminal git show ' .. commit)
+        else
+          print 'No commit found'
+        end
+      end, { desc = 'Show commit diff' })
 
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
@@ -890,6 +946,17 @@ require('lazy').setup({
         group = vim.api.nvim_create_augroup('TerraformFileType', { clear = true }),
       })
 
+      vim.api.nvim_create_autocmd({ 'BufReadPost', 'BufNewFile' }, {
+        pattern = { '*.tf', '*.j2' },
+        callback = function()
+          vim.bo.tabstop = 2 -- Number of spaces that a <Tab> counts for
+          vim.bo.shiftwidth = 2 -- Number of spaces for autoindent
+          vim.bo.softtabstop = 2 -- Number of spaces for <Tab> in insert mode
+          vim.bo.expandtab = true -- Use spaces instead of tabs
+        end,
+        group = vim.api.nvim_create_augroup('CustomFileTypeSettings', { clear = true }),
+      })
+
       -- Change diagnostic symbols in the sign column (gutter)
       -- if vim.g.have_nerd_font then
       --   local signs = { ERROR = '', WARN = '', INFO = '', HINT = '' }
@@ -950,6 +1017,20 @@ require('lazy').setup({
             },
           },
         },
+
+        eslint = {
+          on_attach = function(client, bufnr)
+            client.server_capabilities.documentFormattingProvider = true
+            vim.api.nvim_create_autocmd('BufWritePre', {
+              buffer = bufnr,
+              command = 'EslintFixAll', -- requires :EslintFixAll to be available (see below)
+            })
+          end,
+          settings = {
+            workingDirectories = { mode = 'auto' },
+          },
+        },
+
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -959,7 +1040,11 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
-
+        marksman = {
+          cmd = { 'marksman' },
+          filetypes = { 'markdown' },
+          root_dir = require('lspconfig.util').root_pattern('.git', '.marksman.toml'),
+        },
         lua_ls = {
           -- cmd = {...},
           -- filetypes = { ...},
@@ -1000,6 +1085,7 @@ require('lazy').setup({
             -- by the server configuration above. Useful when disabling
             -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+            server.capabilities.offsetEncoding = { 'utf-16' }
             require('lspconfig')[server_name].setup(server)
           end,
         },
