@@ -336,34 +336,20 @@ require('lazy').setup({
       local fterm = require 'FTerm'
       local gemini = fterm:new { cmd = 'gemini' }
 
-      -- Normal mode toggle for default terminal
+      -- Normal mode toggles
       vim.keymap.set('n', '<leader>tt', function()
         fterm:toggle()
       end, { desc = '[T]oggle [T]erminal' })
 
-      -- Normal mode toggle for Gemini
       vim.keymap.set('n', '<leader>gg', function()
         gemini:toggle()
       end, { desc = 'Toggle [G]emini' })
 
-      -- Terminal mode toggle (escape then toggle)
-      vim.keymap.set('t', '<leader>tt', function()
+      -- Terminal mode: <C-q> closes any floating terminal (FTerm or Gemini)
+      vim.keymap.set('t', '<C-q>', function()
         vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-\\><C-n>', true, false, true), 'n', true)
-        fterm:toggle()
-      end, { desc = '[T]oggle [T]erminal in terminal mode' })
-
-      -- Terminal mode toggle for Gemini
-      vim.keymap.set('t', '<leader>gg', function()
-        vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-\\><C-n>', true, false, true), 'n', true)
-        gemini:toggle()
-      end, { desc = 'Toggle [G]emini in terminal mode' })
-
-      -- Reduce leader delay in terminal buffers
-      vim.api.nvim_create_autocmd('TermOpen', {
-        callback = function()
-          vim.opt_local.timeoutlen = 500
-        end,
-      })
+        vim.cmd 'close'
+      end, { desc = 'Close floating terminal with Ctrl+Q' })
     end,
   },
   {
