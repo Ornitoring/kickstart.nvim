@@ -177,6 +177,15 @@ vim.g.netrw_liststyle = 3
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+-- Delete without overwriting clipboard
+vim.keymap.set('n', 'd', '"_d', { noremap = true })
+vim.keymap.set('n', 'x', '"_x', { noremap = true })
+
+-- Change without overwriting clipboard
+vim.keymap.set('n', 'c', '"_c', { noremap = true })
+
+vim.api.nvim_create_user_command('W', 'w', {})
+
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
