@@ -178,11 +178,16 @@ vim.g.netrw_liststyle = 3
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Delete without overwriting clipboard
-vim.keymap.set('n', 'd', '"_d', { noremap = true })
-vim.keymap.set('n', 'x', '"_x', { noremap = true })
+vim.keymap.set({ 'n', 'v' }, 'd', function()
+  return '"_d'
+end, { expr = true })
 
--- Change without overwriting clipboard
-vim.keymap.set('n', 'c', '"_c', { noremap = true })
+vim.keymap.set({ 'n', 'v' }, 'c', function()
+  return '"_c'
+end, { expr = true })
+vim.keymap.set({ 'n', 'v' }, 'x', function()
+  return '"_x'
+end, { expr = true })
 
 vim.api.nvim_create_user_command('W', 'w', {})
 
