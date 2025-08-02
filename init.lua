@@ -120,9 +120,6 @@ vim.opt.fileencoding = 'utf-8'
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
-vim.schedule(function()
-  vim.opt.clipboard = 'unnamedplus'
-end)
 
 -- Enable break indent
 vim.opt.breakindent = true
@@ -195,24 +192,18 @@ vim.keymap.set('n', '<leader>rds', function()
   vim.cmd 'autocmd termclose * if &buftype == "terminal" | bd! | endif'
 end, { desc = 'Search AWS RDS instances and open in browser' })
 
--- Delete without overwriting clipboard
-vim.keymap.set({ 'n', 'v' }, 'd', function()
-  return '"_d'
-end, { expr = true })
-
-vim.keymap.set({ 'n', 'v' }, 'c', function()
-  return '"_c'
-end, { expr = true })
-vim.keymap.set({ 'n', 'v' }, 'x', function()
-  return '"_x'
-end, { expr = true })
-
 vim.api.nvim_create_user_command('W', 'w', {})
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
 vim.keymap.set('n', '<leader>y', ':Telescope neoclip<CR>', { noremap = true, silent = true, desc = 'Open clipboard history' })
+
+-- Copy to system clipboard in Visual mode
+vim.keymap.set('v', '<C-c>', '"+y', { noremap = true, silent = true })
+
+-- Paste from system clipboard in Normal mode
+vim.keymap.set('n', '<C-v>', '"+p', { noremap = true, silent = true })
 
 vim.keymap.set('n', '<leader>e', ':Explore<CR>', { noremap = true, silent = true })
 
@@ -275,13 +266,6 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
     vim.highlight.on_yank()
-    vim.fn.setreg('"', vim.fn.getreg '+') -- Yank system clipboard into unnamed register
-  end,
-})
-
-vim.api.nvim_create_autocmd('FocusGained', {
-  callback = function()
-    vim.fn.setreg('"', vim.fn.getreg '+') -- Sync clipboard to unnamed register
   end,
 })
 
@@ -346,7 +330,7 @@ require('lazy').setup({
       end, { desc = 'Toggle [G]emini' })
 
       -- Terminal mode: <C-q> closes any floating terminal (FTerm or Gemini)
-      vim.keymap.set('t', '<C-q>', function()
+      vim.keymap.set({ 't', 'n' }, '<C-q>', function()
         vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-\\><C-n>', true, false, true), 'n', true)
         vim.cmd 'close'
       end, { desc = 'Close floating terminal with Ctrl+Q' })
